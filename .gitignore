@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Node modules (VERY IMPORTANT)
 node_modules/
 
@@ -8,11 +9,30 @@ node_modules/
 logs
 *.log
 npm-debug.log*
+=======
+# dependencies
+node_modules/
+
+# environment variables
+.env
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# build folders
+dist/
+build/
+>>>>>>> d33ff1d2b2506d51680b36e423722a5e6aa9261f
 
 # OS files
 .DS_Store
 Thumbs.db
 
+<<<<<<< HEAD
 # Build folders
 dist/
 build/
@@ -24,9 +44,16 @@ build/
 *.sqlite
 *.db
 
+=======
+>>>>>>> d33ff1d2b2506d51680b36e423722a5e6aa9261f
 # IDE files
 .vscode/
 .idea/
 
+<<<<<<< HEAD
 # Package lock (optional)
 # package-lock.json
+=======
+# cache
+.cache/
+>>>>>>> d33ff1d2b2506d51680b36e423722a5e6aa9261f
