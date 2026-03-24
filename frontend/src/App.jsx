@@ -1,94 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
-import EmployeeDashboard from './pages/EmployeeDashboard';
-import ManagerDashboard from './pages/ManagerDashboard';
-import AdminPanel from './pages/AdminPanel';
-import LeaveTracker from './pages/LeaveTracker';
-import Layout from './components/Layout';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { AuthProvider } from '@/context/AuthContext';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 
-import { AnimatePresence } from 'framer-motion';
+// Mock Pages (to be implemented next)
+import Login from '@/pages/Login';
+import Dashboard from '@/pages/Dashboard';
+import EmployeeDetails from '@/features/manager/pages/EmployeeDetails';
+import Unauthorized from '@/pages/Unauthorized';
+import LeaveApplication from '@/features/employee/pages/LeaveApplication';
+import LeaveApproval from '@/features/manager/pages/LeaveApproval';
+import UserManagement from '@/features/admin/pages/UserManagement';
+import SystemConfig from '@/features/admin/pages/SystemConfig';
+import TeamDirectory from '@/features/manager/pages/TeamDirectory';
+import ProductivityReports from '@/features/manager/pages/ProductivityReports';
+import SessionTracking from '@/features/employee/pages/SessionTracking';
+import BreakTracking from '@/features/employee/pages/BreakTracking';
+import MeetingLogging from '@/features/employee/pages/MeetingLogging';
+import PersonalReports from '@/features/employee/pages/PersonalReports';
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  const token = localStorage.getItem('token');
-  const location = useLocation();
+const App = () => {
+  return (
+    <AuthProvider>
+      <Router>
+        <div className="app-container">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            
+            {/* Wrap protected routes in a layout with Sidebar and Header */}
+            <Route element={<ProtectedRoute allowedRoles={['Employee', 'Manager', 'Admin']} />}>
+              <Route path="/" element={<AppLayout />}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="unauthorized" element={<Unauthorized />} />
+                <Route path="employee/:id" element={<EmployeeDetails />} />
 
-  if (!token || !user) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+                {/* Employee only routes */}
+                <Route element={<ProtectedRoute allowedRoles={['Employee']} />}>
+                  <Route path="session" element={<SessionTracking />} />
+                  <Route path="breaks" element={<BreakTracking />} />
+                  <Route path="meetings" element={<MeetingLogging />} />
+                  <Route path="leave/apply" element={<LeaveApplication />} />
+                  <Route path="reports/personal" element={<PersonalReports />} />
+                </Route>
 
-  if (allowedRoles && !allowedRoles.map(r => r.toLowerCase()).includes(user.role?.toLowerCase())) {
-    return <Navigate to="/" replace />;
-  }
+                {/* Manager only routes */}
+                <Route element={<ProtectedRoute allowedRoles={['Manager']} />}>
+                  <Route path="team" element={<TeamDirectory />} />
+                  <Route path="leave/approve" element={<LeaveApproval />} />
+                  <Route path="reports/team" element={<ProductivityReports />} />
+                </Route>
 
-  return children;
+                {/* Admin only routes */}
+                <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
+                  <Route path="admin/users" element={<UserManagement />} />
+                  <Route path="admin/config" element={<SystemConfig />} />
+                </Route>
+              </Route>
+            </Route>
+
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
+  );
 };
 
-const RoleBasedRedirect = () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user) return <Navigate to="/login" />;
-    
-    const role = user.role?.toLowerCase();
-    if (role === 'admin') return <Navigate to="/admin" />;
-    if (role === 'manager') return <Navigate to="/manager" />;
-    return <Navigate to="/dashboard" />;
-}
-
-function App() {
+const AppLayout = () => {
   return (
-    <Router>
-      <AnimatePresence mode="wait">
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Layout>
-                <RoleBasedRedirect />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/dashboard" element={
-            <ProtectedRoute allowedRoles={['employee', 'manager', 'admin']}>
-              <Layout>
-                <EmployeeDashboard />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/manager" element={
-            <ProtectedRoute allowedRoles={['manager', 'admin']}>
-              <Layout>
-                <ManagerDashboard />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <Layout>
-                <AdminPanel />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          <Route path="/leave" element={
-            <ProtectedRoute allowedRoles={['employee', 'manager', 'admin']}>
-              <Layout>
-                <LeaveTracker />
-              </Layout>
-            </ProtectedRoute>
-          } />
-
-          
-          {/* Default catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </AnimatePresence>
-    </Router>
+    <div className="layout-wrapper">
+      <Sidebar />
+      <div className="main-content">
+        <Header />
+        <main className="page-body">
+           <Outlet />
+        </main>
+      </div>
+    </div>
   );
-}
+};
 
 export default App;

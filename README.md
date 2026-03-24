@@ -1,111 +1,78 @@
-# EMP PRO | Enterprise Productivity Dashboard
+# PROJECT1 - Internal Management Platform (LibSQL + React)
 
-**EMP PRO** is a high-performance, modern, and fully integrated Employee Productivity Management system. Designed with a clean SaaS-style aesthetic, it empowers organizations to manage team capacity, monitor project risks, and streamline HR workflows through specialized dashboards for Employees, Managers, and Admins.
+## 📋 Overview
+A scalable enterprise dashboard architecture built with **React (Vite)** and **Node.js (Express)**. The platform features a robust role-based access control (RBAC) system powered by **Turso (LibSQL)** and **JWT Authentication**.
 
----
+## ✨ Key Features
+- **Security-First Architecture**: JWT-protected API endpoints with role-based middleware guarding.
+- **Smart Backend Boot**: Automatic port conflict detection (starts at `3001`, auto-increments if busy).
+- **Turso DB Integration**: Real-time synchronization with cloud-ready LibSQL database.
+- **Modular Frontend**: Feature-sliced architecture (`/features`) for clean separation between Employee, Manager, and Admin domains.
 
-## 🚀 Core Features
-
-### 🏢 Role-Based Dashboards
-- **Employee Dashboard**: Manage work sessions, track breaks, view productivity history, and submit leave requests.
-- **Manager Dashboard**: Comprehensive team overview with Quick Approvals for leave, department-level metrics, and real-time team capacity tracking.
-- **Admin Dashboard**: Advanced system control including user management, role assignment, active session monitoring, and automated database backups.
-
-### ⚡ Interactive Team Pulse
-The Manager Dashboard features an intelligent **Team Pulse** section that transforms static alerts into actionable insights:
-- **Squad Insight**: Click 'Frontend Squad' to reveal a deep-dive modal showing collective synergy scores, individual member productivity, and precise project status updates.
-- **Risk Assessment**: Interactive deadline monitoring that automatically flags 'URGENT' projects (within 7 days of deadline) and suggests mitigation strategies.
-
-### 📊 Advanced Analytics
-- **Performance Visualization**: Beautiful, interactive charts (via Recharts) displaying department workload distribution.
-- **Productivity Scoring**: Algorithmic productivity calculation based on work duration and session quality.
-
-### 🔐 Enterprise Architecture
-- **SaaS-Style UI**: Built with **Tailwind CSS**, **Framer Motion**, and **Inter Typography** for a premium, responsive user experience.
-- **Robust Backend**: Node.js & Express API with a tiered SQLite database architecture (primary, logs, and backups).
-- **Security**: JWT-based authentication and restricted API access via protected routes.
-
----
-
-## 🛠️ Technology Stack
-
-| Layer | Technologies |
-| :--- | :--- |
-| **Frontend** | React, Vite, Tailwind CSS, Framer Motion, Recharts, Lucide-React |
-| **Backend** | Node.js, Express |
-| **Database** | SQLite (via `better-sqlite3`) |
-| **Auth** | JWT (JSON Web Tokens), BCrypt.js |
-
----
-
-## 📥 Installation & Setup
-
-### 1. Prerequisites
-- Node.js (v18.x or higher)
-- npm or yarn
-
-### 2. Manual Repository Setup
-```bash
-# Clone the repository (if applicable)
-git clone <repository-url>
-cd emp-dashboard
-```
-
-### 3. Backend Implementation
-```bash
-cd backend
-npm install
-node src/index.js
-```
-*The backend will start at `http://localhost:5000`. It automatically seeds a demo environment with initial users (Admin/Manager/Employee).*
-
-### 4. Frontend Integration
-```bash
-cd ../frontend
-npm install
-npm run dev
-```
-*The frontend will start at `http://localhost:5173`.*
-
----
-
-## 📂 Project Structure
+## 📁 Repository Architecture
 
 ```text
-emp-dashboard/
-├── backend/
+PROJECT1/
+├── backend/                # Node.js REST API
+│   ├── config/             # DB & Env configuration (Turso/LibSQL)
+│   ├── controllers/        # Logical request handlers (Auth, Employee, etc.)
+│   ├── middleware/         # Auth guards & JWT verification
+│   ├── models/             # Schema & DB Seeding (initDb.js)
+│   ├── routes/             # Endpoint definitions
+│   ├── .env                # Private credentials (TURSO_*, JWT_SECRET)
+│   └── server.js           # Smart-boot Express entry point
+│
+├── frontend/               # React (Vite) Frontend
 │   ├── src/
-│   │   ├── controllers/   # Route handlers (Pulse, Leave, Auth)
-│   │   ├── db/            # SQLite schema and seeding logic
-│   │   ├── middleware/    # Auth and error protection
-│   │   └── routes/        # API endpoint definitions
-│   └── database.sqlite    # Active production data
-├── frontend/
-│   ├── src/
-│   │   ├── components/    # Reusable UI (Modals, Navigation)
-│   │   ├── pages/         # Dashboard views (Admin, Manager, Employee)
-│   │   ├── services/      # Axios API configuration
-│   │   └── index.css      # Tailwind design system
-└── README.md              # Documentation
+│   │   ├── components/     # Shared UI (Sidebar, Header, ProtectedRoute)
+│   │   ├── context/        # Global State (AuthContext)
+│   │   ├── features/       # Role-specific modules (Admin, Employee, Manager)
+│   │   ├── services/       # API calling layer (apiClient, usersService, etc.)
+│   │   ├── pages/          # Top-level Routing Pages (Login, Dashboard)
+│   │   ├── App.jsx         # Routing configuration
+│   │   └── main.jsx        # App entry point
+│   └── vite.config.js      # Alias config (@ -> /src)
+└── README.md
 ```
 
----
+## 🛠️ Setup & Running Locally
 
-## 🔑 Credential Profiles (Demo Only)
+### 1. Backend Service
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+2. Configure `.env` based on `.env.example`:
+   ```bash
+   TURSO_DATABASE_URL=libsql://...
+   TURSO_AUTH_TOKEN=...
+   JWT_SECRET=...
+   ```
+3. Start the dev server (uses `nodemon`):
+   ```bash
+   npm run dev
+   ```
+   *Note: Server will automatically find an available port starting from 3001.*
 
+### 2. Frontend Application
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+2. Start the development environment:
+   ```bash
+   npm run dev
+   ```
+3. Access the browser at `http://localhost:5173`.
+
+## 🔑 Default Test Credentials
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| **Admin** | admin@emp.com | admin123 |
-| **Manager** | manager@emp.com | manager123 |
-| **Employee** | employee@emp.com | employee123 |
+| **Admin** | `admin@company.com` | `admin123` |
+| **Manager** | `manager@company.com` | `manager123` |
+| **Employee** | `employee@company.com` | `employee123` |
 
----
-
-## 📌 Development Notes
-- **Persistence**: Productivity logs and work sessions are calculated server-side in the `database.sqlite` file.
-- **Theme**: The application defaults to a "Crystal Light" theme with Indigo highlights for maximum readability and a professional enterprise feel.
-- **Resilience**: Frontend modals utilize optional chaining and defensive state management to handle loading transitions smoothly.
-
----
-
-**© 2026 EMP PRO | Advanced Agentic Coding Project**
+## 🛡️ Technical Stack
+- **Frontend**: React 18, Vite, Lucide React (Icons), CSS-in-JS (Premium Glassmorphism).
+- **Backend**: Express, JWT, BcryptJS.
+- **Database**: LibSQL (@libsql/client) for Turso.
