@@ -10,7 +10,7 @@ import {
   Tooltip,
   Legend,
   ArcElement,
-} from 'chart.js';
+} from 'chart.jsx';
 import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
