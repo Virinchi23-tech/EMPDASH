@@ -21,7 +21,7 @@ https://empdash.onrender.com
 
 ## 🔗 API Base URL
 Frontend uses:
-VITE_API_URL=https://your-backend.onrender.com
+VITE_API_URL=https://empdash23.vercel.app
 
 A production-ready Enterprise Management System built with React, Node.js, and Turso (SQLite).
 
