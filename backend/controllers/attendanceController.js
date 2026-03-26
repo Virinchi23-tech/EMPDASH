@@ -144,9 +144,9 @@ exports.getAllAttendance = async (req, res) => {
     
     try {
         let query = `
-            SELECT a.*, e.name as employee_name
+            SELECT a.id, e.name as employee_name, a.date, a.check_in_time, a.check_out_time, a.total_hours, a.status, a.employee_id
             FROM attendance a
-            JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN employees e ON a.employee_id = e.id
         `;
         const args = [];
         const filters = [];
@@ -168,6 +168,7 @@ exports.getAllAttendance = async (req, res) => {
         query += " ORDER BY a.date DESC, a.check_in_time DESC";
 
         const results = await client.execute({ sql: query, args });
+        console.log(`✅ [DB] Global Fetch Successful: Rows=${results.rows.length}`);
         res.json({ success: true, data: results.rows });
     } catch (err) {
         console.error('🔥 Global Fetch Failure:', err.message);

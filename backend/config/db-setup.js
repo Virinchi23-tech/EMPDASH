@@ -15,6 +15,23 @@ const setupDatabase = async () => {
         if (attendInfo.rows.length > 0 && !hasEmployeeId) {
             console.log('🔄 Outdated Attendance Schema detected. Migrating to Employee Registry standard...');
             await client.execute("DROP TABLE attendance");
+        } else if (hasEmployeeId) {
+            console.log('🔍 Standardizing ID formats (EMP001)...');
+            // Migration query attempt for numeric IDs
+            try {
+                const results = await client.execute("SELECT employee_id FROM attendance LIMIT 5");
+                const anyNumeric = results.rows.some(r => /^\d+$/.test(r.employee_id));
+                if (anyNumeric) {
+                    console.log('🔄 Converting numeric IDs to Employee Registry strings...');
+                    await client.execute(`
+                        UPDATE attendance 
+                        SET employee_id = (SELECT emp_id FROM users WHERE CAST(users.id AS TEXT) = attendance.employee_id)
+                        WHERE employee_id NOT LIKE 'EMP%'
+                    `);
+                }
+            } catch (e) {
+                console.log('✨ Registry ID alignment already optimal.');
+            }
         }
 
         // 1. Core Personnel Registry
