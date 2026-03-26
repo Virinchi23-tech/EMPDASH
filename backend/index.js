@@ -25,7 +25,10 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const performanceRoutes = require('./routes/performanceRoutes'); // Strategic Module
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true
+}));
 app.use(express.json());
 
 // Observation Layer: Real-time traffic monitoring

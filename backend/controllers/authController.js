@@ -7,25 +7,26 @@ const { client } = require('../config/db');
  */
 exports.login = async (req, res) => {
     const { email, password } = req.body;
-    console.log(`🔐 Login Attempt: ${email}`);
+    console.log(`🔐 [AUTH] Login Node Triggered: Candidate=${email}`);
 
     try {
+        console.log(`🔍 [AUTH] Probing Registry for identity: ${email}`);
         const query = await client.execute({
             sql: "SELECT id, emp_id, name, email, password, role, department FROM users WHERE email = ? LIMIT 1",
             args: [email]
         });
 
         if (query.rows.length === 0) {
-            console.warn(`❌ Login Failed: User not found (${email})`);
-            return res.status(401).json({ success: false, message: 'Invalid Credentials' });
+            console.warn(`❌ [AUTH] Handshake Discontinuity: Identity not found for ${email}`);
+            return res.status(401).json({ success: false, message: 'Invalid Credentials - Account logic mismatch' });
         }
 
         const user = query.rows[0];
 
         // Plain text comparison as per initial simplified requirements
         if (password !== user.password) {
-            console.warn(`❌ Login Failed: Incorrect password for ${email}`);
-            return res.status(401).json({ success: false, message: 'Invalid Credentials' });
+            console.warn(`❌ [AUTH] Integrity Failure: Invalid credential hash for ${email}`);
+            return res.status(401).json({ success: false, message: 'Invalid Credentials - Verification failed' });
         }
 
         const payload = {
