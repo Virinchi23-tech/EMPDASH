@@ -1,5 +1,28 @@
 # Employee Dashboard - Admin & Employee System
 
+# Employee Dashboard 🚀
+
+## 🌐 Live Links
+
+### Frontend (Vercel)
+https://empdash23.vercel.app
+
+### Backend (Render)
+https://your-backend.onrender.com
+
+---
+
+## ⚙️ Tech Stack
+- Frontend: Vite + React
+- Backend: Node.js + Express
+- Database: Turso
+
+---
+
+## 🔗 API Base URL
+Frontend uses:
+VITE_API_URL=https://your-backend.onrender.com
+
 A production-ready Enterprise Management System built with React, Node.js, and Turso (SQLite).
 
 ## 🚀 Quick Start
