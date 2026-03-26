@@ -8,6 +8,15 @@ const setupDatabase = async () => {
     try {
         console.log('🏗️  Enforcing Master Data Schema [Final Sync]...');
 
+        // 0. Migration Safeguard: Inspect Attendance Table
+        const attendInfo = await client.execute("PRAGMA table_info(attendance)");
+        const hasEmployeeId = attendInfo.rows.some(r => r.name === 'employee_id');
+        
+        if (attendInfo.rows.length > 0 && !hasEmployeeId) {
+            console.log('🔄 Outdated Attendance Schema detected. Migrating to Employee Registry standard...');
+            await client.execute("DROP TABLE attendance");
+        }
+
         // 1. Core Personnel Registry
         await client.execute(`
             CREATE TABLE IF NOT EXISTS users (
@@ -22,6 +31,12 @@ const setupDatabase = async () => {
                 salary REAL DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
+        `);
+
+        // 1.5 Legacy Support View (Employee Mapping)
+        await client.execute(`
+            CREATE VIEW IF NOT EXISTS employees AS 
+            SELECT emp_id AS id, name, email, role FROM users
         `);
 
         // 2. Strategic Infrastructure (Projects)
@@ -83,12 +98,13 @@ const setupDatabase = async () => {
         await client.execute(`
             CREATE TABLE IF NOT EXISTS attendance (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                emp_id TEXT NOT NULL,
+                employee_id TEXT NOT NULL,
                 date TEXT NOT NULL,
-                check_in TEXT,
-                check_out TEXT,
-                status TEXT DEFAULT 'Present',
-                FOREIGN KEY (emp_id) REFERENCES users(emp_id) ON DELETE CASCADE
+                check_in_time TEXT,
+                check_out_time TEXT,
+                total_hours REAL DEFAULT 0,
+                status TEXT DEFAULT 'Absent',
+                FOREIGN KEY (employee_id) REFERENCES users(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -148,8 +164,8 @@ const setupDatabase = async () => {
             
             // Seed sample attendance for Alice
             await client.execute({
-                sql: "INSERT INTO attendance (emp_id, date, check_in, check_out, status) VALUES (?, ?, ?, ?, ?)",
-                args: ["EMP004", new Date().toISOString().split('T')[0], "09:00", "18:00", "Present"]
+                sql: "INSERT INTO attendance (employee_id, date, check_in_time, check_out_time, total_hours, status) VALUES (?, ?, ?, ?, ?, ?)",
+                args: ["EMP004", new Date().toISOString().split('T')[0], "09:00", "18:00", 9.0, "Checked Out"]
             });
 
             console.log('✅ Master Registry Initialized.');

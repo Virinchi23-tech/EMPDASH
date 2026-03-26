@@ -18,8 +18,9 @@ import {
   ArrowUpRight,
   Loader2,
   CalendarDays,
-  Timer,
-  Briefcase
+  Briefcase,
+  LogIn,
+  LogOut
 } from 'lucide-react';
 import { 
   AreaChart, 
@@ -56,18 +57,21 @@ const EmployeeDashboard = () => {
     // Modal states
     const [activeModal, setActiveModal] = useState(null); // 'meeting', 'leave', 'productivity', 'workHours', 'breaks', 'meetingsList'
     const [leaves, setLeaves] = useState([]);
+    const [todayAttendance, setTodayAttendance] = useState(null);
 
     const fetchData = async () => {
         try {
-            const [statusRes, statsRes, prodRes, leavesRes] = await Promise.all([
+            const [statusRes, statsRes, prodRes, leavesRes, attendanceRes] = await Promise.all([
                 api.get('/time/status'),
                 api.get('/time/stats'),
                 api.get('/time/productivity'),
-                api.get('/leave/my')
+                api.get('/leave/my'),
+                api.get('/attendance/me')
             ]);
             setStatus(statusRes.data);
             setStats(statsRes.data);
             setLeaves(leavesRes.data || []);
+            setTodayAttendance(attendanceRes.data.data || null);
             
             const pData = prodRes.data || {};
             const totalWork = pData.totalWorkTime || 0;
@@ -152,22 +156,18 @@ const EmployeeDashboard = () => {
     const handleStartWork = async () => {
         try {
             setLoading(true);
-            const { data } = await api.post('/time/start-work');
-            setStatus(prev => ({ ...prev, active: true, sessionId: data.sessionId, startTime: new Date().toISOString() }));
-            setTimer(0);
+            await api.post('/attendance/checkin');
             fetchData();
-        } catch (error) { alert(error.response?.data?.error || error.response?.data?.message || 'Error starting work'); }
+        } catch (error) { alert(error.response?.data?.message || 'Error starting work'); }
         finally { setLoading(false); }
     };
 
     const handleStopWork = async () => {
         try {
             setLoading(true);
-            await api.post('/time/stop-work');
-            setStatus({ active: false, onBreak: false });
-            setTimer(0);
+            await api.post('/attendance/checkout');
             fetchData();
-        } catch (error) { alert(error.response?.data?.error || error.response?.data?.message || 'Error stopping work'); }
+        } catch (error) { alert(error.response?.data?.message || 'Error stopping work'); }
         finally { setLoading(false); }
     };
 
@@ -234,9 +234,9 @@ const EmployeeDashboard = () => {
 
                     <div className="relative z-10 flex flex-col items-center w-full text-center">
                         <div className="flex items-center gap-3 mb-8">
-                            <div className={`px-4 py-1.5 rounded-full flex items-center gap-2 border-2 ${status.active ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
-                                <div className={`w-2 h-2 rounded-full ${status.active ? 'bg-indigo-600 animate-pulse' : 'bg-slate-300'}`} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">{status.active ? 'Active Session' : 'Offline'}</span>
+                            <div className={`px-4 py-1.5 rounded-full flex items-center gap-2 border-2 ${todayAttendance?.status === 'Checked In' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                                <div className={`w-2 h-2 rounded-full ${todayAttendance?.status === 'Checked In' ? 'bg-indigo-600 animate-pulse' : 'bg-slate-300'}`} />
+                                <span className="text-[10px] font-black uppercase tracking-widest">{todayAttendance?.status === 'Checked In' ? 'Checked In' : todayAttendance?.status || 'Offline'}</span>
                             </div>
                         </div>
 
@@ -250,44 +250,50 @@ const EmployeeDashboard = () => {
                         </div>
 
                         <div className="flex flex-wrap justify-center gap-5 w-full max-w-lg">
-                             {!status.active ? (
+                             {!todayAttendance || todayAttendance.status === 'Offline' ? (
                                 <button 
                                     onClick={handleStartWork}
                                     disabled={loading}
-                                    className="flex-1 min-w-[200px] py-5 px-8 bg-indigo-600 text-white rounded-3xl font-black hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-3 shadow-2xl shadow-indigo-200 group group"
+                                    className="flex-1 min-w-[220px] py-6 px-10 bg-indigo-600 text-white rounded-[32px] font-black hover:bg-indigo-700 active:scale-95 transition-all shadow-2xl shadow-indigo-200 group flex items-center justify-center gap-4"
                                 >
-                                    {loading ? <Loader2 className="animate-spin" /> : <Play size={20} className="fill-current" />}
-                                    <span className="text-lg">Start Day</span>
-                                    <ArrowRight size={20} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                                    {loading ? <Loader2 className="animate-spin" /> : <LogIn size={26} className="text-white" />}
+                                    <span className="text-xl uppercase tracking-tighter">Check In Today</span>
+                                    <ArrowRight size={22} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                                </button>
+                            ) : todayAttendance.status === 'Checked In' ? (
+                                <button 
+                                    onClick={handleStopWork}
+                                    disabled={loading}
+                                    className="flex-1 min-w-[220px] py-6 px-10 bg-slate-900 text-white rounded-[32px] font-black hover:bg-black active:scale-95 transition-all shadow-2xl shadow-slate-200 group flex items-center justify-center gap-4"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" /> : <LogOut size={26} className="text-white" />}
+                                    <span className="text-xl uppercase tracking-tighter">Check Out Now</span>
                                 </button>
                             ) : (
-                                <>
-                                    <div className="flex flex-col gap-2 flex-1 min-w-[200px]">
-                                        <button 
-                                            onClick={() => status.onBreak ? handleToggleBreak() : setActiveModal('breakType')}
-                                            disabled={loading}
-                                            className={`w-full py-5 px-8 rounded-3xl font-black active:scale-95 transition-all flex items-center justify-center gap-3 border-2 
-                                                ${status.onBreak 
-                                                    ? 'bg-emerald-600 border-emerald-600 text-white shadow-xl shadow-emerald-100' 
-                                                    : 'bg-white border-slate-100 text-slate-700 hover:border-indigo-200 hover:bg-indigo-50/30'
-                                                }
-                                            `}
-                                        >
-                                            <Coffee size={20} />
-                                            <span className="text-lg">{status.onBreak ? `End ${status.breakType || 'Break'}` : 'Start Break'}</span>
-                                        </button>
-                                    </div>
-                                    <button 
-                                        onClick={handleStopWork}
-                                        disabled={loading}
-                                        className="flex-1 min-w-[180px] py-5 px-8 bg-slate-900 text-white rounded-3xl font-black hover:bg-black active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl shadow-slate-200"
-                                    >
-                                        <Square size={20} className="fill-current" />
-                                        <span className="text-lg">End Shift</span>
-                                    </button>
-                                </>
+                                <div className="p-8 bg-slate-50 rounded-[32px] border-2 border-slate-100 text-slate-400 font-black uppercase tracking-widest">
+                                     Shift Logged Successfully
+                                </div>
                             )}
                         </div>
+
+                        {todayAttendance && (
+                            <div className="mt-8 flex gap-8 text-left border-t border-slate-50 pt-8 w-full justify-center">
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check In</p>
+                                    <p className="text-xl font-black text-indigo-600">{todayAttendance.check_in_time || '--:--'}</p>
+                                </div>
+                                <div className="w-px h-10 bg-slate-100" />
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Check Out</p>
+                                    <p className="text-xl font-black text-slate-900">{todayAttendance.check_out_time || '--:--'}</p>
+                                </div>
+                                <div className="w-px h-10 bg-slate-100" />
+                                <div>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Hours</p>
+                                    <p className="text-xl font-black text-emerald-600">{todayAttendance.total_hours ? parseFloat(todayAttendance.total_hours).toFixed(1) : '0.0'}h</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

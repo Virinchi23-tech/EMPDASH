@@ -3,6 +3,14 @@ const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
 
+if (!process.env.TURSO_DATABASE_URL && !process.env.DATABASE_URL) {
+    console.error("❌ ERROR: TURSO_DATABASE_URL or DATABASE_URL environment variable is missing.");
+    process.exit(1);
+}
+if (!process.env.TURSO_AUTH_TOKEN && !process.env.DATABASE_AUTH_TOKEN) {
+    console.warn("⚠️ WARNING: TURSO_AUTH_TOKEN or DATABASE_AUTH_TOKEN is missing (only okay if using a local SQLite file).");
+}
+
 const { connectDB } = require('./config/db');
 const setupDatabase = require('./config/db-setup');
 

@@ -1,8 +1,8 @@
 const { createClient } = require('@libsql/client');
 require('dotenv').config();
 
-const cloudUrl = process.env.DATABASE_URL?.trim();
-const authToken = process.env.DATABASE_AUTH_TOKEN?.trim();
+const cloudUrl = (process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL)?.trim();
+const authToken = (process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN)?.trim();
 const localUrl = 'file:local.db';
 
 let activeDriver;
