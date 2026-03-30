@@ -1,14 +1,18 @@
 import axios from 'axios';
 
-// 🚀 [API] Using relative baseURL to leverage Vite Development Proxy (/api)
-// This resolves the ECONNREFUSED issues by routing through 5173 -> 5000
-const baseURL = '/api';
+/**
+ * 🚀 [API Instance] Synchronized Production Gateway
+ * Dynamically resolves the backend hub based on environment:
+ * - Production: VITE_API_URL (e.g., https://empdash.onrender.com/api)
+ * - Development: /api (proxied via Vite to localhost:5000)
+ */
+const baseURL = import.meta.env.VITE_API_URL || '/api';
 
-console.log(`📡 [API Client] Initializing with proxy baseURL: ${baseURL}`);
+console.log(`📡 [API Client] Initializing session with baseURL: ${baseURL}`);
 
 const api = axios.create({
   baseURL: baseURL,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout for Render cold starts
   headers: {
     'Content-Type': 'application/json'
   }
@@ -16,16 +20,18 @@ const api = axios.create({
 
 /**
  * 🔐 Request Interceptor: Identity Propagation
- * Automatically attaches the JWT 'Bearer' token to every outgoing request
+ * Orchestrates the attachment of JWT 'Bearer' tokens to the Authorization header
  */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
+  
   if (token && token !== 'null' && token !== 'undefined') {
     config.headers.Authorization = `Bearer ${token.trim()}`;
-    console.log(`🌐 [AXIOS Request] Authenticated: ${config.method.toUpperCase()} ${config.url}`);
+    console.log(`🌐 [AXIOS Request] Authenticated Handshake: ${config.method.toUpperCase()} ${config.url}`);
   } else {
-    console.log(`🌐 [AXIOS Request] Anonymous: ${config.method.toUpperCase()} ${config.url}`);
+    console.warn(`🌐 [AXIOS Request] Anonymous Handshake: ${config.method.toUpperCase()} ${config.url}`);
   }
+  
   return config;
 }, (error) => {
   console.error('❌ [AXIOS Request Error]', error);
@@ -33,40 +39,50 @@ api.interceptors.request.use((config) => {
 });
 
 /**
- * 🛠️ Response Interceptor: Lifecycle Management
- * Handles token expiration, unauthorized access, and network failures
+ * 🛠️ Response Interceptor: Lifecycle & Recovery Logic
+ * Monitors the health of the connection and handles authentication failures
  */
 api.interceptors.response.use(
   (response) => {
+    // 💡 [Lifecycle: Auto-Retry Optimization]
+    // If the call succeeds, we ensure we return the response immediately.
     return response;
   },
   async (error) => {
     const { response, config } = error;
 
-    // Log detailed failure for debugging
-    console.error(`🛑 [AXIOS Response Error] ${config?.method?.toUpperCase()} ${config?.url} | Status: ${response?.status || 'NETWORK_FAILURE'} | Message: ${error.message}`);
+    // Log high-fidelity failure logs for Render/Vercel monitoring
+    console.error(`🛑 [AXIOS Response Error] Path: ${config?.url} | Status: ${response?.status || 'OFFLINE'} | Message: ${error.message}`);
 
-    // [SCENARIO A] Authentication/Permission Denied (401/403)
+    // 🔥 [RETRY LOGIC: Render Cold Start Resilience]
+    // If we have a timeout or network error, and we haven't retried yet:
+    if (!response && !config._retry) {
+      config._retry = true;
+      console.warn('🔄 Potential Render Cold Start. Triggering automatic handshake retry...');
+      return api(config);
+    }
+
+    // [CASE A] Unauthorized/Forbidden (401/403)
+    // Decommission local identity registry if the token is invalid or expired
     if (response && (response.status === 401 || response.status === 403)) {
-      console.warn('🔑 Authentication Tiers Rejected: Session Expired or Unauthorized.');
+      console.warn('🔑 Authentication Tiers Denied. Resetting local environment...');
       
-      // Clean up invalid session data
       localStorage.removeItem('token');
       localStorage.removeItem('user');
 
-      // Redirect to login if not already there (Reduces redundant redirects)
+      // Redirect if not on the login node to avoid loops
       if (!window.location.pathname.includes('/login')) {
          console.warn('🔄 Redirecting to Authentication Node...');
          window.location.href = '/login?session_expired=true';
       }
     }
 
-    // [SCENARIO B] Backend Connection Failure (ECONNREFUSED)
+    // [CASE B] Node Cold Start Persistence
     if (!response) {
-      console.warn('⚠️ Server unreachable. Potential Port Mismatch or Backend Offline.');
+      console.error('⚠️ Infrastructure Unreachable after retry. Check the Render status page.');
       return Promise.reject({
         ...error,
-        message: 'Could not connect to the backend server. Ensure node index.js is running on port 5000.'
+        message: 'The cloud infrastructure is currently initiating. Please wait a moment and retry (Render Cold Start).'
       });
     }
 
