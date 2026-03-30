@@ -6,6 +6,7 @@ const authMiddleware = (req, res, next) => {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
+        console.warn('❌ [AUTH] Handshake Interrupted: Identity Token Missing');
         return res.status(401).json({ message: 'No token, authorization denied' });
     }
 
@@ -14,6 +15,7 @@ const authMiddleware = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (err) {
+        console.error('❌ [AUTH] Integrity Failure: Invalid JWT Handshake:', err.message);
         res.status(401).json({ message: 'Token is not valid' });
     }
 };
@@ -24,8 +26,16 @@ const authorize = (roles = []) => {
     }
 
     return (req, res, next) => {
-        if (roles.length && !roles.includes(req.user.role)) {
-            return res.status(403).json({ message: 'Access denied: Insufficient permissions' });
+        if (!req.user) {
+            return res.status(401).json({ message: 'Authentication required for synchronization' });
+        }
+
+        const userRole = req.user.role?.toLowerCase();
+        const allowedRoles = roles.map(r => r.toLowerCase());
+
+        if (allowedRoles.length && !allowedRoles.includes(userRole)) {
+            console.warn(`❌ [AUTH] Unauthorized Access Attempt: Role ${userRole} not in sanctioned list [${allowedRoles}]`);
+            return res.status(403).json({ message: 'Access denied: Insufficient permissions for this node' });
         }
         next();
     };

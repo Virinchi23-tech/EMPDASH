@@ -64,7 +64,7 @@ const Salary = () => {
    * handleDownload - Secure PDF acquisition via Authorization Handshake
    */
   const handleDownload = async (salary) => {
-    const payslipUrl = `/api/salary/${salary.emp_id}/payslip/${salary.month}-${salary.year}`;
+    const payslipUrl = `/salary/${salary.emp_id}/payslip/${salary.month}-${salary.year}`;
     toast.success(`Acquiring Production Payslip: ${salary.month} ${salary.year}`);
     
     try {

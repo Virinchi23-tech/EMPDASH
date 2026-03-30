@@ -51,9 +51,9 @@ exports.getAllLeaves = async (req, res) => {
     console.log(`📡 API: GET /api/leaves/all`);
     try {
         const results = await client.execute(`
-            SELECT l.*, u.name as employee_name, u.department 
+            SELECT l.*, e.name as employee_name, e.department 
             FROM leaves l
-            JOIN users u ON l.emp_id = u.emp_id
+            JOIN employees e ON l.emp_id = e.emp_id
             ORDER BY l.start_date DESC
         `);
         res.json({ success: true, data: results.rows });
