@@ -17,16 +17,23 @@ const Performance = () => {
     review_date: new Date().toISOString().split('T')[0],
     comments: ''
   });
+  const [submitting, setSubmitting] = useState(false);
 
-  const isAdminOrManager = ['Admin', 'Manager'].includes(user.role);
+  const isAdminOrManager = ['ADMIN', 'MANAGER', 'HR'].includes(user?.role?.toUpperCase());
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      if (!user.emp_id) return;
+      
       console.log(`📡 Synchronization Handshake: ${user.emp_id} Performance History`);
       
-      const perfRes = await api.get(`/performance/${user.emp_id}`);
-      setPerformance(perfRes.data.success ? perfRes.data.data : []);
+      const perfRes = await api.get(`/api/performance/${user.emp_id}`);
+      if (perfRes.data.success) {
+        // Strategic De-duplication Protocol
+        const unique = Array.from(new Set(perfRes.data.data.map(q => JSON.stringify(q)))).map(q => JSON.parse(q));
+        setPerformance(unique);
+      }
       
       if (isAdminOrManager) {
         const empRes = await api.get('/api/employees');
@@ -46,50 +53,55 @@ const Performance = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     try {
+      setSubmitting(true);
       await api.post('/api/performance', formData);
       toast.success('Performance Review Persisted');
       setIsModalOpen(false);
+      setFormData({ ...formData, score: '', comments: '' });
       fetchData();
     } catch (err) {
       toast.error('Sync failure: unauthorized tiers.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
     <div className="space-y-12 max-w-7xl mx-auto pb-16 animate-fade-in text-gray-900">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-12 bg-white rounded-[3.5rem] border border-gray-100 shadow-sm relative overflow-hidden group">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-8 md:p-12 bg-white rounded-[2.5rem] md:rounded-[3.5rem] border border-gray-100 shadow-sm relative overflow-hidden group">
         <div className="absolute inset-x-0 bottom-0 h-1.5 bg-gradient-to-r from-primary-600 to-indigo-600 animate-pulse"></div>
         <div className="relative z-10">
-          <h1 className="text-5xl font-black text-gray-900 tracking-tighter mb-2">Efficiency Auditing</h1>
-          <p className="text-gray-400 font-bold uppercase tracking-[0.3em] text-[10px] flex items-center gap-3">
-             <Star size={16} className="text-amber-500 fill-amber-500" />
-             Strategic Personnel Benchmarking • Role: {user.role}
+          <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter mb-2">Efficiency Auditing</h1>
+          <p className="text-gray-400 font-bold uppercase tracking-[0.2em] text-[9px] md:text-[10px] flex items-center gap-3">
+             <Star size={14} md:size={16} className="text-amber-500 fill-amber-500" />
+             Strategic Personnel Benchmarking <span className="hidden md:inline">•</span> Role: {user.role}
           </p>
         </div>
         
-        <div className="flex gap-4 mt-8 md:mt-0 relative z-10">
-          <button onClick={fetchData} className="bg-gray-50 text-gray-400 p-5 rounded-3xl border border-gray-100 hover:bg-primary-50 hover:text-primary-600 transition-all shadow-inner"><RefreshCw size={28} className={loading ? 'animate-spin' : ''} /></button>
+        <div className="flex gap-4 mt-6 md:mt-0 relative z-10 w-full md:w-auto">
+          <button onClick={fetchData} className="bg-gray-50 text-gray-400 p-4 md:p-5 rounded-2xl md:rounded-3xl border border-gray-100 hover:bg-primary-50 hover:text-primary-600 transition-all shadow-inner"><RefreshCw size={24} md:size={28} className={loading ? 'animate-spin' : ''} /></button>
           {isAdminOrManager && (
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-primary-600 text-white px-10 py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-primary-200 flex items-center gap-3 hover:bg-primary-700 transition-all active:scale-95"
+              className="flex-1 md:flex-none justify-center bg-primary-600 text-white px-6 md:px-10 py-4 md:py-5 rounded-2xl md:rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[8px] md:text-[10px] shadow-2xl shadow-primary-200 flex items-center gap-3 hover:bg-primary-700 transition-all active:scale-95"
             >
-              <Zap size={20} fill="currentColor" className="text-amber-400" /> Record Review
+              <Zap size={16} md:size={20} fill="currentColor" className="text-amber-400" /> Record Review
             </button>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        <div className="lg:col-span-2 space-y-10">
-           <div className="bg-white rounded-[4rem] border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
-              <div className="p-12 border-b border-gray-50 flex items-center justify-between bg-primary-50/20 px-16 relative">
-                 <div className="flex items-center gap-6 z-10">
-                    <div className="w-16 h-16 bg-primary-600 text-white rounded-[2rem] flex items-center justify-center shadow-2xl shadow-primary-200"><Award size={32} /></div>
+        <div className="lg:col-span-2 space-y-8 md:space-y-10">
+           <div className="bg-white rounded-[2.5rem] md:rounded-[4rem] border border-gray-100 shadow-sm overflow-hidden min-h-[400px] md:min-h-[600px] flex flex-col">
+              <div className="p-8 md:p-12 border-b border-gray-50 flex items-center justify-between bg-primary-50/20 px-10 md:px-16 relative">
+                 <div className="flex items-center gap-4 md:gap-6 z-10">
+                    <div className="w-12 h-12 md:w-16 md:h-16 bg-primary-600 text-white rounded-[1.5rem] md:rounded-[2rem] flex items-center justify-center shadow-2xl shadow-primary-200"><Award size={24} md:size={32} /></div>
                     <div>
-                       <h2 className="text-2xl font-black text-gray-900 tracking-tight uppercase leading-none">Productivity Index</h2>
-                       <p className="text-[10px] font-black text-gray-400 tracking-widest uppercase mt-2">Validated Metrics History</p>
+                       <h2 className="text-lg md:text-2xl font-black text-gray-900 tracking-tight uppercase leading-none">Productivity Index</h2>
+                       <p className="text-[8px] md:text-[10px] font-black text-gray-400 tracking-widest uppercase mt-2">Validated Metrics History</p>
                     </div>
                  </div>
               </div>
@@ -123,7 +135,7 @@ const Performance = () => {
                                       <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Personnel Audit Impact</h3>
                                    </div>
                                 </div>
-                                <p className="text-sm font-bold text-gray-500 leading-relaxed bg-gray-50/50 p-6 rounded-2xl border border-gray-50 uppercase tracking-tight">"{res.comments || 'No feedback logged for this synchronization window.'}"</p>
+                                <p className="text-xs md:text-sm font-bold text-gray-500 leading-relaxed bg-gray-50/50 p-4 md:p-6 rounded-xl md:rounded-2xl border border-gray-50 uppercase tracking-tight break-words overflow-hidden">"{res.comments || 'No feedback logged for this synchronization window.'}"</p>
                              </div>
                           </div>
                        ))}
@@ -210,8 +222,17 @@ const Performance = () => {
               
               <div className="flex gap-6 pt-8">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-8 text-gray-400 font-black uppercase tracking-widest text-[10px] hover:text-gray-900 transition-colors">Discard</button>
-                <button type="submit" className="flex-[2] py-8 bg-primary-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-2xl shadow-primary-200 hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center gap-3">
-                  <Zap size={18} fill="currentColor" className="text-amber-400" /> Commit Sync
+                <button 
+                  type="submit" 
+                  disabled={submitting}
+                  className={`flex-[2] py-8 bg-primary-600 text-white font-black uppercase tracking-widest text-[10px] rounded-[2rem] shadow-2xl shadow-primary-200 hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center gap-3 ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {submitting ? (
+                    <RefreshCw size={18} className="animate-spin" />
+                  ) : (
+                    <Zap size={18} fill="currentColor" className="text-amber-400" />
+                  )}
+                  {submitting ? 'Synchronizing...' : 'Commit Sync'}
                 </button>
               </div>
             </form>

@@ -13,10 +13,17 @@ const setupDatabase = async () => {
         const hasEmpId = empTableInfo.rows.some(r => r.name === 'emp_id');
         const hasPassword = empTableInfo.rows.some(r => r.name === 'password');
         const hasManagerId = empTableInfo.rows.some(r => r.name === 'manager_id');
+        const hasDesignation = empTableInfo.rows.some(r => r.name === 'designation');
+        const hasProfileImage = empTableInfo.rows.some(r => r.name === 'profile_image');
         
-        if (empTableInfo.rows.length > 0 && (!hasEmpId || !hasPassword || !hasManagerId)) {
+        if (empTableInfo.rows.length > 0 && (!hasEmpId || !hasPassword || !hasManagerId || !hasDesignation || !hasProfileImage)) {
             console.log('🔄 Outdated Employee Schema detected. Migrating to full registry...');
-            await client.execute("DROP TABLE employees");
+            await client.execute("DROP TABLE IF EXISTS meeting_messages");
+            await client.execute("DROP TABLE IF EXISTS meeting_participants");
+            await client.execute("DROP TABLE IF EXISTS attendance");
+            await client.execute("DROP TABLE IF EXISTS performance");
+            await client.execute("DROP TABLE IF EXISTS salaries");
+            await client.execute("DROP TABLE IF EXISTS employees");
         }
 
         // 0.1 Inspection of Attendance Table
@@ -38,6 +45,18 @@ const setupDatabase = async () => {
             await client.execute("DROP TABLE leaves");
         }
 
+        // 0.3 Inspection of Meetings Registry
+        const meetingInfo = await client.execute("PRAGMA table_info(meetings)");
+        const hasMeetingLink = meetingInfo.rows.some(r => r.name === 'meeting_link');
+        const hasScheduledTime = meetingInfo.rows.some(r => r.name === 'scheduled_time');
+        
+        if (meetingInfo.rows.length > 0 && (!hasMeetingLink || !hasScheduledTime)) {
+            console.log('🔄 Outdated Meetings Schema detected. Migrating to Strategic Real-Time standard...');
+            await client.execute("DROP TABLE IF EXISTS meeting_messages");
+            await client.execute("DROP TABLE IF EXISTS meeting_participants");
+            await client.execute("DROP TABLE IF EXISTS meetings");
+        }
+
         // 1. Core Identity Registry (Employees)
         await client.execute(`
             CREATE TABLE IF NOT EXISTS employees (
@@ -47,7 +66,9 @@ const setupDatabase = async () => {
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'Employee',
+                designation TEXT DEFAULT 'Software Engineer',
                 department TEXT DEFAULT 'Engineering',
+                profile_image TEXT,
                 joining_date TEXT,
                 salary REAL DEFAULT 0,
                 manager_id TEXT,
@@ -149,17 +170,44 @@ const setupDatabase = async () => {
             )
         `);
 
-        // 9. Meeting Logs Infrastructure (New as requested)
+        // 9. Meeting Logs Infrastructure (Real-Time Hub Standard)
         await client.execute(`
             CREATE TABLE IF NOT EXISTS meetings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id TEXT NOT NULL,
+                id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
-                meeting_date TEXT NOT NULL,
+                description TEXT,
+                meeting_link TEXT,
+                scheduled_time TEXT NOT NULL,
                 duration INTEGER DEFAULT 0,
-                notes TEXT,
+                created_by TEXT NOT NULL,
+                status TEXT DEFAULT 'scheduled',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES employees(emp_id) ON DELETE CASCADE
+                FOREIGN KEY (created_by) REFERENCES employees(emp_id) ON DELETE CASCADE
+            )
+        `);
+
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS meeting_participants (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                meeting_id TEXT NOT NULL,
+                employee_id TEXT NOT NULL,
+                role TEXT DEFAULT 'employee',
+                joined_at DATETIME,
+                left_at DATETIME,
+                FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+                FOREIGN KEY (employee_id) REFERENCES employees(emp_id) ON DELETE CASCADE
+            )
+        `);
+
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS meeting_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                meeting_id TEXT NOT NULL,
+                sender_id TEXT NOT NULL,
+                message TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE,
+                FOREIGN KEY (sender_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -297,15 +345,15 @@ const setupDatabase = async () => {
         if (userCheck.rows[0].count === 0) {
             console.log('🌱 Registry empty. Initializing strategic personnel data...');
             const personnel = [
-                ["EMP001", "Admin User", "admin@empdash.com", "admin123", "Admin", "Executive", "2024-01-01", 120000],
-                ["EMP002", "Jane Manager", "jane@empdash.com", "manager123", "Manager", "Engineering", "2024-01-15", 95000],
-                ["EMP003", "Robert HR", "robert@empdash.com", "hr123", "HR", "Corporate", "2024-02-01", 85000],
-                ["EMP004", "Alice Employee", "alice@empdash.com", "emp123", "Employee", "Design", "2024-03-01", 60000]
+                ["EMP001", "Admin User", "admin@empdash.com", "admin123", "Admin", "Chief Executive", "Executive", "https://i.pravatar.cc/150?u=EMP001", "2024-01-01", 120000],
+                ["EMP002", "Jane Manager", "jane@empdash.com", "manager123", "Manager", "Senior Lead", "Engineering", "https://i.pravatar.cc/150?u=EMP002", "2024-01-15", 95000],
+                ["EMP003", "Robert HR", "robert@empdash.com", "hr123", "HR", "People Ops", "Corporate", "https://i.pravatar.cc/150?u=EMP003", "2024-02-01", 85000],
+                ["EMP004", "Alice Employee", "alice@empdash.com", "emp123", "Employee", "Developer", "Design", "https://i.pravatar.cc/150?u=EMP004", "2024-03-01", 60000]
             ];
             for (const u of personnel) {
                 // We only insert into employees; triggers handle the rest
                 await client.execute({
-                    sql: "INSERT INTO employees (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    sql: "INSERT INTO employees (emp_id, name, email, password, role, designation, department, profile_image, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     args: u
                 });
             }

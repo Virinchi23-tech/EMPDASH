@@ -1,8 +1,20 @@
 import axios from 'axios';
-const baseURL = import.meta.env.VITE_API_URL;
+const getDynamicBaseURL = () => {
+  const envURL = import.meta.env.VITE_API_URL;
+  
+  // 🔌 Strategic Android Emulator Redirect
+  // On Android emulators, localhost points to the local device.
+  // To reach the host machine's backend, we must use 10.0.2.2.
+  if (typeof window !== 'undefined' && /android/i.test(navigator.userAgent) && envURL?.includes('localhost')) {
+     console.log('📱 Android Node Detected: Re-routing Localhost Handshake to Gateway (10.0.2.2)');
+     return envURL.replace('localhost', '10.0.2.2');
+  }
+
+  return envURL || 'http://localhost:5050';
+};
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5050',
+  baseURL: getDynamicBaseURL(),
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

@@ -96,7 +96,18 @@ const MeetingsLog = () => {
       if (response.data.success) {
         toast.success('Professional Session Established');
         setShowModal(false);
-        // fetchMeetings(); // We don't need to fetch if socket broadcast works, but safe to refresh
+        
+        // Strategic Auto-Join for External Links
+        if (formData.meeting_link && formData.meeting_link.startsWith('http')) {
+           window.open(formData.meeting_link, '_blank');
+        }
+        
+        setFormData({
+          title: '', description: '',
+          scheduled_time: new Date().toISOString().slice(0, 16),
+          duration: 30, meeting_link: '', participants: []
+        });
+        fetchMeetings();
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Infrastructure Handshake Failure');
@@ -226,10 +237,16 @@ const MeetingsLog = () => {
                        </div>
 
                        <button 
-                        onClick={() => navigate(`/meetings/${meeting.id}`)}
+                        onClick={() => {
+                          if (meeting.meeting_link && meeting.meeting_link.startsWith('http') && !meeting.meeting_link.includes(`/meetings/${meeting.id}`)) {
+                            window.open(meeting.meeting_link, '_blank');
+                          } else {
+                            navigate(`/meetings/${meeting.id}`);
+                          }
+                        }}
                         className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] italic flex items-center justify-center gap-3 hover:bg-indigo-600 transition-all shadow-xl"
                        >
-                         Join Room <ExternalLink size={14} />
+                         {meeting.meeting_link && meeting.meeting_link.includes('meet.google.com') ? 'Open Google Meet' : 'Join Room'} <ExternalLink size={14} />
                        </button>
                      </div>
                    </motion.div>
