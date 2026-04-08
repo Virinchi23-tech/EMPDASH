@@ -1,4 +1,5 @@
 const { client } = require('./db');
+const bcrypt = require('bcryptjs');
 
 /**
  * setupDatabase - Final Comprehensive Schema Initialization
@@ -166,7 +167,8 @@ const setupDatabase = async () => {
                 from_date TEXT NOT NULL,
                 to_date TEXT NOT NULL,
                 reason TEXT,
-                status TEXT DEFAULT 'Pending'
+                status TEXT DEFAULT 'Pending',
+                FOREIGN KEY (employee_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -289,9 +291,16 @@ const setupDatabase = async () => {
         await client.execute(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                emp_id TEXT,
+                name TEXT,
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                role TEXT DEFAULT 'Employee'
+                role TEXT DEFAULT 'Employee',
+                department TEXT,
+                joining_date TEXT,
+                salary REAL DEFAULT 0,
+                profile_image TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
@@ -304,8 +313,8 @@ const setupDatabase = async () => {
             CREATE TRIGGER IF NOT EXISTS sync_user_insert
             AFTER INSERT ON employees
             BEGIN
-                INSERT OR IGNORE INTO users (email, password, role)
-                VALUES (new.email, new.password, new.role);
+                INSERT OR IGNORE INTO users (emp_id, name, email, password, role, department, joining_date, salary, profile_image)
+                VALUES (new.emp_id, new.name, new.email, new.password, new.role, new.department, new.joining_date, new.salary, new.profile_image);
             END;
         `);
 
@@ -315,9 +324,15 @@ const setupDatabase = async () => {
             AFTER UPDATE ON employees
             BEGIN
                 UPDATE users 
-                SET email = new.email, 
+                SET emp_id = new.emp_id,
+                    name = new.name,
+                    email = new.email, 
                     password = new.password, 
-                    role = new.role
+                    role = new.role,
+                    department = new.department,
+                    joining_date = new.joining_date,
+                    salary = new.salary,
+                    profile_image = new.profile_image
                 WHERE email = old.email;
             END;
         `);
@@ -335,8 +350,8 @@ const setupDatabase = async () => {
         // Manually align existing records before triggers handle future flow
         console.log('🔄 Aligning Legacy Identity Clusters...');
         await client.execute(`
-            INSERT OR IGNORE INTO users (email, password, role)
-            SELECT email, password, role FROM employees
+            INSERT OR IGNORE INTO users (emp_id, name, email, password, role, department, joining_date, salary, profile_image)
+            SELECT emp_id, name, email, password, role, department, joining_date, salary, profile_image FROM employees
         `);
 
         // 14. Core Seeding Logic
@@ -351,10 +366,13 @@ const setupDatabase = async () => {
                 ["EMP004", "Alice Employee", "alice@empdash.com", "emp123", "Employee", "Developer", "Design", "https://i.pravatar.cc/150?u=EMP004", "2024-03-01", 60000]
             ];
             for (const u of personnel) {
-                // We only insert into employees; triggers handle the rest
+                const hashedPassword = await bcrypt.hash(u[3], 10);
+                const record = [...u];
+                record[3] = hashedPassword;
+                
                 await client.execute({
                     sql: "INSERT INTO employees (emp_id, name, email, password, role, designation, department, profile_image, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    args: u
+                    args: record
                 });
             }
 

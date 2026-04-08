@@ -25,6 +25,7 @@ const calculateHours = (start, end) => {
  * checkIn - Synchronized arrival for individual personnel
  */
 exports.checkIn = async (req, res) => {
+    console.log('🎫 [JWT DEBUG] Decoded User:', req.user);
     const employee_id = req.user.id; // From JWT (emp_id)
     const date = new Date().toISOString().split('T')[0];
     const time = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });

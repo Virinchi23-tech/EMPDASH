@@ -74,7 +74,7 @@ exports.getMe = async (req, res) => {
     try {
         // Query by email which is consistent across both tables
         const query = await client.execute({
-            sql: "SELECT emp_id, name, email, role, department, joining_date, salary FROM employees WHERE email = ? LIMIT 1",
+            sql: "SELECT emp_id, name, email, role, department, joining_date, salary, profile_image FROM employees WHERE email = ? LIMIT 1",
             args: [req.user.email]
         });
 
@@ -125,5 +125,49 @@ exports.getUsers = async (req, res) => {
         res.json(query.rows);
     } catch (err) {
         res.status(500).json({ message: 'Server error' });
+    }
+};
+/**
+ * updateProfile - Updates authenticated user profile
+ */
+exports.updateProfile = async (req, res) => {
+    const { name, email, password, profile_image } = req.body;
+    const oldEmail = req.user.email;
+    try {
+        // 1. Update Employees Registry
+        let updateSql = "UPDATE employees SET name = ?, email = ?, profile_image = ? ";
+        let args = [name, email, profile_image];
+        
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateSql += ", password = ? ";
+            args.push(hashedPassword);
+        }
+        
+        updateSql += " WHERE email = ?";
+        args.push(oldEmail);
+        
+        await client.execute({ sql: updateSql, args });
+        
+        // 2. Sync with Users Table for Login Mappings
+        let userUpdateSql = "UPDATE users SET name = ?, email = ?, profile_image = ? ";
+        let userArgs = [name, email, profile_image];
+        
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            userUpdateSql += ", password = ? ";
+            userArgs.push(hashedPassword);
+        }
+        
+        userUpdateSql += " WHERE email = ?";
+        userArgs.push(oldEmail);
+        
+        await client.execute({ sql: userUpdateSql, args: userArgs });
+
+        console.log(`✅ Profile Updated: ${email}`);
+        res.json({ success: true, message: 'Identity node updated and synchronized.' });
+    } catch (err) {
+        console.error('🔥 Update Profile Failure:', err.message);
+        res.status(500).json({ message: 'Strategic update failed. Hub rejected transmission.' });
     }
 };
