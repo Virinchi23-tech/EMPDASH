@@ -5,6 +5,8 @@ import {
   Users, Code, DollarSign, Calendar, Zap, AlertTriangle, CloudOff, Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import Skeleton from '../components/Skeleton';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -40,14 +42,18 @@ const Projects = () => {
       const endpoint = isAdmin 
         ? '/api/projects' 
         : `/api/projects/employee/${user.emp_id}`;
-        
-      const response = await api.get(endpoint);
-      setProjects(Array.isArray(response.data) ? response.data : []);
       
-      // Only fetch personnel registry if Admin/Manager
+      // Optimization: Parallelized Infrastructure Sync
+      const requests = [api.get(endpoint)];
       if (isAdmin) {
-          const empRes = await api.get('/api/employees');
-          setEmployees(empRes.data.employees || []);
+          requests.push(api.get('/api/employees'));
+      }
+      
+      const responses = await Promise.all(requests);
+      
+      setProjects(Array.isArray(responses[0].data) ? responses[0].data : []);
+      if (isAdmin && responses[1]) {
+          setEmployees(responses[1].data.employees || []);
       }
       
       setLoading(false);
@@ -55,7 +61,6 @@ const Projects = () => {
       console.error('❌ Infrastructure Sync Failure:', err.message);
       setSyncError(err.message === 'Network Error' ? 'Link Severed' : 'Access Restricted');
       setLoading(false);
-      // Fallback: Show empty instead of blocking error screen
       setProjects([]);
     }
   }, [isAdmin, user.emp_id]);
@@ -166,10 +171,20 @@ const Projects = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         {loading && projects.length === 0 ? (
-          <div className="col-span-full py-32 text-center">
-             <RefreshCw className="animate-spin mx-auto text-primary-400 mb-8" size={72} />
-             <p className="text-gray-300 font-black uppercase tracking-[0.4em] text-lg italic animate-pulse">Synchronizing Authorizations...</p>
-          </div>
+          [1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-10 space-y-6">
+                <Skeleton className="w-16 h-16 rounded-3xl" />
+                <Skeleton className="w-full h-10 rounded-xl" />
+                <Skeleton className="w-2/3 h-6 rounded-lg" />
+                <div className="pt-8 space-y-4">
+                   <Skeleton className="w-full h-24 rounded-[2rem]" />
+                   <div className="flex justify-between uppercase">
+                      <Skeleton className="w-24 h-4" />
+                      <Skeleton className="w-24 h-4" />
+                   </div>
+                </div>
+            </div>
+          ))
         ) : filtered.length === 0 ? (
           <div className="col-span-full py-32 text-center text-gray-200 font-black text-4xl uppercase italic tracking-widest border-4 border-dashed border-gray-100 rounded-[3rem] p-12 flex flex-col items-center">
              <CloudOff className="mb-6 opacity-20" size={100} />
@@ -178,7 +193,7 @@ const Projects = () => {
           </div>
         ) : filtered.map((project) => (
           <div key={project.project_id} className="bg-white rounded-[3rem] border border-gray-100 shadow-sm p-10 hover:shadow-2xl transition-all group relative overflow-hidden flex flex-col min-h-[500px] hover:-translate-y-2">
-             <div className="absolute top-0 right-0 w-48 h-48 blur-3xl -mr-24 -mt-24 bg-primary-100/40 group-hover:bg-primary-500/10 transition-colors"></div>
+             <div className="absolute top-0 right-0 w-48 h-48 blur-2xl -mr-24 -mt-24 bg-primary-100/40 group-hover:bg-primary-500/10 transition-colors"></div>
              
              <div className="flex justify-between items-start mb-8 z-10">
                 <div className="p-5 rounded-3xl bg-primary-50 text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-all shadow-xl shadow-primary-100/20"><Briefcase size={32} /></div>

@@ -6,18 +6,22 @@ import {
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import socket from '../services/socket';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import Skeleton from '../components/Skeleton';
 
-const StatCard = ({ title, value, icon: Icon, color, trend, loading }) => (
+const StatCard = ({ title, value, icon: Icon, loading, trend }) => (
   <motion.div 
-    whileHover={{ y: -4 }}
-    className="bg-white p-6 rounded-[24px] border border-slate-200 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="bg-white p-6 rounded-[24px] border border-slate-200 shadow-sm transition-all group overflow-hidden relative"
   >
     <div className="flex justify-between items-start mb-6">
       <div className={`p-3.5 rounded-2xl bg-slate-50 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all border border-slate-100`}>
         <Icon size={24} />
       </div>
-      {trend && !loading && (
+      {loading ? (
+        <Skeleton className="w-12 h-6 rounded-full" />
+      ) : trend && (
         <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${trend > 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'} flex items-center gap-1`}>
           {trend > 0 ? <ArrowUpRight size={12} /> : <TrendingUp size={12} className="rotate-180" />}
           {Math.abs(trend)}%
@@ -26,7 +30,11 @@ const StatCard = ({ title, value, icon: Icon, color, trend, loading }) => (
     </div>
     <div className="space-y-1">
       <h3 className="text-slate-400 text-[11px] font-bold uppercase tracking-[0.1em]">{title}</h3>
-      <p className="text-3xl font-bold text-slate-900 tracking-tight">{loading ? '...' : value}</p>
+      {loading ? (
+        <Skeleton className="w-24 h-8 mt-1" />
+      ) : (
+        <p className="text-3xl font-bold text-slate-900 tracking-tight">{value}</p>
+      )}
     </div>
   </motion.div>
 );
@@ -146,29 +154,38 @@ const Dashboard = () => {
                  </div>
                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest px-3 py-1 bg-slate-50 rounded-lg">Real-time update</span>
               </div>
-              
-              <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6">
-                 <div className="relative">
-                    <div className="w-32 h-32 rounded-full border-8 border-slate-50 flex items-center justify-center">
-                       <p className="text-4xl font-bold text-slate-900">98%</p>
+                            <div className="flex-1 flex flex-col justify-center items-center text-center space-y-6">
+                  {loading ? (
+                    <div className="space-y-6 flex flex-col items-center">
+                       <Skeleton className="w-32 h-32 rounded-full" />
+                       <Skeleton className="w-48 h-6" />
+                       <Skeleton className="w-64 h-10" />
                     </div>
-                    <div className="absolute inset-0 border-8 border-indigo-600 rounded-full border-t-transparent animate-spin-slow"></div>
-                 </div>
-                 <div className="space-y-2">
-                    <h3 className="text-lg font-bold text-slate-900">Operations Stable</h3>
-                    <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium">All cloud infrastructure nodes are currently synchronized and performing within optimal parameters.</p>
-                 </div>
-              </div>
+                  ) : (
+                    <>
+                    <div className="relative">
+                       <div className="w-32 h-32 rounded-full border-8 border-slate-50 flex items-center justify-center">
+                          <p className="text-4xl font-bold text-slate-900">98%</p>
+                       </div>
+                       <div className="absolute inset-0 border-8 border-indigo-600 rounded-full border-t-transparent animate-spin-slow"></div>
+                    </div>
+                    <div className="space-y-2">
+                       <h3 className="text-lg font-bold text-slate-900">Operations Stable</h3>
+                       <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium">All cloud infrastructure nodes are currently synchronized and performing within optimal parameters.</p>
+                    </div>
+                    </>
+                  )}
+               </div>
 
-              {/* Decorative elements */}
-              <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-indigo-50 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
-           </div>
+163:               {/* Decorative elements */}
+164:               <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-indigo-50 rounded-full blur-xl opacity-50 transition-opacity" />
+165:            </div>
         </div>
 
         {/* Right Sidebar Widgets */}
         <div className="space-y-8">
            <div className="bg-slate-900 p-8 rounded-[32px] text-white shadow-xl relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl" />
+              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl" />
               <div className="relative space-y-8">
                  <div className="space-y-1">
                     <p className="text-indigo-300 text-[10px] font-bold uppercase tracking-[0.2em]">Personal Identifier</p>

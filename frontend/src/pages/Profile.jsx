@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import Skeleton from '../components/Skeleton';
 
 const Profile = () => {
   const { user, fetchMe } = useAuth();
@@ -66,8 +67,8 @@ const Profile = () => {
       {/* Header Banner */}
       <div className="h-48 md:h-64 bg-slate-900 rounded-[32px] md:rounded-[48px] shadow-xl relative overflow-hidden flex items-end p-8 md:p-12 border-b-8 border-indigo-600">
          <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500 rounded-full blur-[120px] -mr-32 -mt-32" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500 rounded-full blur-[100px] -ml-24 -mb-24" />
+            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500 rounded-full blur-2xl -mr-32 -mt-32" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500 rounded-full blur-2xl -ml-24 -mb-24" />
          </div>
          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between w-full gap-6">
             <div className="space-y-2 text-left">
